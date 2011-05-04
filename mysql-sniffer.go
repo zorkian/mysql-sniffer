@@ -221,7 +221,7 @@ func handleQuery(query []byte, dirty bool, verbose bool) {
 
 	// if verbose, just print it
 	if verbose {
-		log.Printf(qstr)
+		log.Printf("%s", qstr)
 		return
 	}
 
