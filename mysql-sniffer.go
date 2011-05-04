@@ -6,7 +6,10 @@
  *
  * FIXME: this assumes IPv4.
  * FIXME: tokenizer doesn't handle negative numbers or floating points.
- * FIXME: tokenizer should collapse "IN (?,?,?,?)" and "VALUES (?,?,?,?)"
+ * FIXME: canonicalizer should collapse "IN (?,?,?,?)" and "VALUES (?,?,?,?)"
+ * FIXME: tokenizer breaks on '"' or similarly embedded quotes
+ * FIXME: canonicalizer doesn't strip newlines or collapse space
+ * FIXME: tokenizer parses numbers in words wrong, i.e. s2compiled -> s?compiled
  *
  * written by Mark Smith <mark@qq.is>
  *
