@@ -1,0 +1,18 @@
+MySQL Query Sniffer
+
+This program uses libpcap to capture and analyze packets destined for a MySQL
+server.  With a variety of command line options, you can tune the output to
+show you a variety of outputs, such as:
+
+    * top N queries since you started running the program
+    * top N queries every X seconds (sliding window)
+    * all queries (sanitized or not)
+
+There are other options useful for tuning the output to your specifications.
+Please see the application help and play with it.
+
+To compile, you need the Go compiler (http://golang.org) as well as the gopcap
+library (https://github.com/xb95/gopcap) compiled and installed where 6g/6l
+can find it.
+
+Written by Mark Smith <mark@qq.is>.
