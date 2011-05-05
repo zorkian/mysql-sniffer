@@ -43,6 +43,7 @@ func main() {
 	var eth *string = flag.String("i", "eth0", "Interface to sniff")
 	var snaplen *int = flag.Int("s", 1024, "Bytes of each packet to sniff")
 	var dirty *bool = flag.Bool("u", false, "Unsanitized -- do not canonicalize queries")
+	var binary *bool = flag.Bool("b", false, "Output binary -- do not escape binary in queries")
 	var period *int = flag.Int("t", 10, "Seconds between outputting status")
 	var displaycount *int = flag.Int("d", 25, "Display this many queries in status updates")
 	var verbose *bool = flag.Bool("v", false, "Print every query received (spammy)")
@@ -67,7 +68,7 @@ func main() {
 
 	last := time.Seconds()
 	for pkt := iface.Next(); pkt != nil; pkt = iface.Next() {
-		handlePacket(pkt, *dirty, *verbose)
+		handlePacket(pkt, *dirty, *binary, *verbose)
 
 		// simple output printer... this should be super fast since we expect that a
 		// system like this will have relatively few unique queries once they're
@@ -108,7 +109,7 @@ func handleStatusUpdate(displaycount int) {
 // extract the data... we have to figure out where it is, which means extracting data
 // from the various headers until we get the location we want.  this is crude, but
 // functional and it should be fast.
-func handlePacket(pkt *pcap.Packet, dirty, verbose bool) {
+func handlePacket(pkt *pcap.Packet, dirty, binary, verbose bool) {
 	// Ethernet frame has 14 bytes of stuff to ignore, so we start our root position here
 	var pos uint8 = 14
 
@@ -130,7 +131,7 @@ func handlePacket(pkt *pcap.Packet, dirty, verbose bool) {
 	}
 
 	// the query is now in query ... easier to deal with than always offsetting
-	handleQuery(pkt.Data[pos+5:], dirty, verbose)
+	handleQuery(pkt.Data[pos+5:], dirty, binary, verbose)
 }
 
 // scans forward in the query given the current type and returns when we encounter
@@ -187,6 +188,20 @@ func scanToken(query []byte) (length int, thistype int) {
 	return
 }
 
+func cleanupRawQuery(query []byte) string {
+	var qspace []string
+	var theByte byte
+	for i := 0; i < len(query); i++ {
+		theByte = query[i]
+		if (theByte >= 0x20 && theByte <= 0x7E) || theByte == 0x0A || theByte == 0x0D {
+			qspace = append(qspace, string(theByte))
+		} else {
+			qspace = append(qspace, fmt.Sprintf("\\x%02x", theByte))
+		}
+	}
+	return strings.Join(qspace, "")
+}
+
 func cleanupQuery(query []byte) string {
 	// iterate until we hit the end of the query...
 	var qspace []string
@@ -211,10 +226,12 @@ func cleanupQuery(query []byte) string {
 	return strings.Join(qspace, "")
 }
 
-func handleQuery(query []byte, dirty bool, verbose bool) {
+func handleQuery(query []byte, dirty bool, binary bool, verbose bool) {
 	var qstr string
-	if dirty {
+	if dirty && binary {
 		qstr = string(query)
+	} else if dirty {
+		qstr = cleanupRawQuery(query)
 	} else {
 		qstr = cleanupQuery(query)
 	}
