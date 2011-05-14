@@ -71,7 +71,7 @@ func main() {
 	var rv int32 = 0
 
 	for rv = 0; rv >= 0; {
-		for pkt, rv = iface.Next(); pkt != nil; pkt, rv = iface.Next() {
+		for pkt, rv = iface.NextEx(); pkt != nil; pkt, rv = iface.NextEx() {
 			handlePacket(pkt, *dirty, *binary, *verbose)
 
 			// simple output printer... this should be super fast since we expect that a
