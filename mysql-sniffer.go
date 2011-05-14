@@ -53,7 +53,7 @@ func main() {
 	log.SetFlags(0)
 
 	log.Printf("Initializing MySQL sniffing on %s:%d...", *eth, *port)
-	iface, err := pcap.Openlive(*eth, int32(*snaplen), false, 10)
+	iface, err := pcap.Openlive(*eth, int32(*snaplen), false, 0)
 	if iface == nil || err != "" {
 		if err == "" {
 			err = "unknown error"
