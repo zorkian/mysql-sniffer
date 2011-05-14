@@ -53,7 +53,7 @@ func main() {
 	log.SetFlags(0)
 
 	log.Printf("Initializing MySQL sniffing on %s:%d...", *eth, *port)
-	iface, err := pcap.Openlive(*eth, int32(*snaplen), false, 0)
+	iface, err := pcap.Openlive(*eth, int32(*snaplen), false, 10)
 	if iface == nil || err != "" {
 		if err == "" {
 			err = "unknown error"
@@ -67,15 +67,20 @@ func main() {
 	}
 
 	last := time.Seconds()
-	for pkt := iface.Next(); pkt != nil; pkt = iface.Next() {
-		handlePacket(pkt, *dirty, *binary, *verbose)
+	var pkt *pcap.Packet = nil
+	var rv int32 = 0
 
-		// simple output printer... this should be super fast since we expect that a
-		// system like this will have relatively few unique queries once they're
-		// canonicalized.
-		if !*verbose && querycount%100 == 0 && last < time.Seconds()-int64(*period) {
-			last = time.Seconds()
-			handleStatusUpdate(*displaycount)
+	for rv = 0; rv >= 0; {
+		for pkt, rv = iface.Next(); pkt != nil; pkt, rv = iface.Next() {
+			handlePacket(pkt, *dirty, *binary, *verbose)
+
+			// simple output printer... this should be super fast since we expect that a
+			// system like this will have relatively few unique queries once they're
+			// canonicalized.
+			if !*verbose && querycount%100 == 0 && last < time.Seconds()-int64(*period) {
+				last = time.Seconds()
+				handleStatusUpdate(*displaycount)
+			}
 		}
 	}
 }
