@@ -95,7 +95,7 @@ func handleStatusUpdate(displaycount int) {
 	log.SetFlags(0)
 
 	// we cheat so badly here...
-	var tmp sort.StringArray = make([]string, 0, len(qbuf))
+	var tmp sort.StringSlice = make([]string, 0, len(qbuf))
 	for q, c := range qbuf {
 		tmp = append(tmp, fmt.Sprintf("%6d  %0.2f/s  %s", c, float64(c)/elapsed, q))
 	}
