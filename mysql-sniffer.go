@@ -8,7 +8,6 @@
  * FIXME: tokenizer doesn't handle negative numbers or floating points.
  * FIXME: canonicalizer should collapse "IN (?,?,?,?)" and "VALUES (?,?,?,?)"
  * FIXME: tokenizer breaks on '"' or similarly embedded quotes
- * FIXME: canonicalizer doesn't strip newlines or collapse space
  * FIXME: tokenizer parses numbers in words wrong, i.e. s2compiled -> s?compiled
  *
  * written by Mark Smith <mark@qq.is>
@@ -37,6 +36,7 @@ var querycount int
 const TOKEN_DEFAULT = 0
 const TOKEN_QUOTE = 1
 const TOKEN_NUMBER = 2
+const TOKEN_WHITESPACE = 3
 
 func UnixNow() int64 {
 	return time.Now().Unix()
@@ -181,10 +181,20 @@ func scanToken(query []byte) (length int, thistype int) {
 		}
 		return len(query), TOKEN_NUMBER
 
+	case query[0] == 32 || (query[0] >= 9 && query[0] <= 13): // whitespace
+		for i := 1; i < len(query); i++ {
+			switch {
+			case query[i] == 32 || (query[i] >= 9 && query[i] <= 13): // whitespace
+			default:
+				return i, TOKEN_WHITESPACE
+			}
+		}
+		return len(query), TOKEN_WHITESPACE
+
 	default:
 		for i := 1; i < len(query); i++ {
 			switch {
-			case query[i] == 39 || query[i] == 34 || (query[i] >= 48 && query[i] <= 57):
+			case query[i] == 39 || query[i] == 34 || (query[i] >= 48 && query[i] <= 57) || query[i] == 32 || (query[i] >= 9 && query[i] <= 13):
 				return i, TOKEN_DEFAULT
 			default:
 			}
@@ -223,6 +233,9 @@ func cleanupQuery(query []byte) string {
 
 		case TOKEN_NUMBER, TOKEN_QUOTE:
 			qspace = append(qspace, "?")
+
+		case TOKEN_WHITESPACE:
+			qspace = append(qspace, " ")
 
 		default:
 			log.Fatalf("scanToken returned invalid token type %d", toktype)
