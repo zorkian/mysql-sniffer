@@ -12,7 +12,7 @@ There are other options useful for tuning the output to your specifications.
 Please see the application help and play with it.
 
 To compile, you need the Go compiler (http://golang.org) as well as the gopcap
-library (https://github.com/xb95/gopcap) compiled and installed where 6g/6l
+library (https://github.com/akrennmair/gopcap) compiled and installed where go
 can find it.
 
 Written by Mark Smith <mark@qq.is>.

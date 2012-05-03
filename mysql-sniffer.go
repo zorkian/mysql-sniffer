@@ -14,7 +14,7 @@
  * written by Mark Smith <mark@qq.is>
  *
  * requires the gopcap library to be installed from:
- *   https://github.com/xb95/gopcap
+ *   https://github.com/akrennmair/gopcap
  *
  */
 
@@ -30,13 +30,17 @@ import (
 	"time"
 )
 
-var start int64 = time.Seconds()
+var start int64 = UnixNow()
 var qbuf map[string]int = make(map[string]int)
 var querycount int
 
 const TOKEN_DEFAULT = 0
 const TOKEN_QUOTE = 1
 const TOKEN_NUMBER = 2
+
+func UnixNow() int64 {
+	return time.Now().Unix()
+}
 
 func main() {
 	var port *int = flag.Int("P", 3306, "MySQL port to use")
@@ -66,7 +70,7 @@ func main() {
 		log.Fatalf("Failed to set port filter: %s", err)
 	}
 
-	last := time.Seconds()
+	last := UnixNow()
 	var pkt *pcap.Packet = nil
 	var rv int32 = 0
 
@@ -77,8 +81,8 @@ func main() {
 			// simple output printer... this should be super fast since we expect that a
 			// system like this will have relatively few unique queries once they're
 			// canonicalized.
-			if !*verbose && querycount%100 == 0 && last < time.Seconds()-int64(*period) {
-				last = time.Seconds()
+			if !*verbose && querycount%100 == 0 && last < UnixNow()-int64(*period) {
+				last = UnixNow()
 				handleStatusUpdate(*displaycount)
 			}
 		}
@@ -86,7 +90,7 @@ func main() {
 }
 
 func handleStatusUpdate(displaycount int) {
-	elapsed := float64(time.Seconds() - start)
+	elapsed := float64(UnixNow() - start)
 
 	// print status bar
 	log.Printf("\n")
