@@ -58,16 +58,17 @@ func main() {
 
 	log.Printf("Initializing MySQL sniffing on %s:%d...", *eth, *port)
 	iface, err := pcap.Openlive(*eth, int32(*snaplen), false, 0)
-	if iface == nil || err != "" {
-		if err == "" {
-			err = "unknown error"
+	if iface == nil || err != nil {
+		msg := "unknown error"
+		if err != nil {
+			msg = err.Error()
 		}
-		log.Fatalf("Failed to open device: %s", err)
+		log.Fatalf("Failed to open device: %s", msg)
 	}
 
 	err = iface.Setfilter(fmt.Sprintf("tcp dst port %d", *port))
-	if err != "" {
-		log.Fatalf("Failed to set port filter: %s", err)
+	if err != nil {
+		log.Fatalf("Failed to set port filter: %s", err.Error())
 	}
 
 	last := UnixNow()
