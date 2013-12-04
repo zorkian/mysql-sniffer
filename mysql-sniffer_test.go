@@ -13,13 +13,14 @@ func cleanupHelper(t *testing.T, input, expected string) {
 }
 
 func TestSimple(t *testing.T) {
-	cleanupHelper(t, "select * from table where col=1", "select * from table where col=?")
+	cleanupHelper(t, "select * from table where col=1",
+		"select * from table where col=?")
 
 	// Should these be ?? or ?
-	cleanupHelper(t, "select * from table where col=\"hello\"", "select * from table where col=??")
-	cleanupHelper(t, "select * from table where col='hello'", "select * from table where col=??")
+	cleanupHelper(t, "select * from table where col=\"hello\"", "select * from table where col=?")
+	cleanupHelper(t, "select * from table where col='hello'", "select * from table where col=?")
 
-	cleanupHelper(t, "select * from table where col='\\''", "select * from table where col=??")
+	cleanupHelper(t, "select * from table where col='\\''", "select * from table where col=?")
 }
 
 func TestWhitespace(t *testing.T) {
@@ -27,12 +28,10 @@ func TestWhitespace(t *testing.T) {
 	cleanupHelper(t, "select *\nfrom\n\n\n\r\ntable", "select * from table")
 }
 
-/*
 func TestFailing(t *testing.T) {
 	cleanupHelper(t, "select * from s2compiled", "select * from s2compiled")
 
 	// Should these be ??, as above
-	cleanupHelper(t, "select * from table where col=\"'\"", "select * from table where col=??")
-	cleanupHelper(t, "select * from table where col='\"'", "select * from table where col=??")
+	cleanupHelper(t, "select * from table where col=\"'\"", "select * from table where col=?")
+	cleanupHelper(t, "select * from table where col='\"'", "select * from table where col=?")
 }
-*/

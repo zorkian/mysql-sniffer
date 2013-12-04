@@ -31,10 +31,11 @@ import (
 )
 
 const (
-	TOKEN_DEFAULT    = 0
+	TOKEN_WORD       = 0
 	TOKEN_QUOTE      = 1
 	TOKEN_NUMBER     = 2
 	TOKEN_WHITESPACE = 3
+	TOKEN_OTHER      = 4
 
 	// Internal tuning
 	TIME_BUCKETS = 10000
@@ -483,17 +484,19 @@ func scanToken(query []byte) (length int, thistype int) {
 	}
 
 	// peek at the first byte, then loop
+	b := query[0]
 	switch {
-	case query[0] == 39 || query[0] == 34: // '"
+	case b == 39 || b == 34: // '"
+		started_with := b
 		escaped := false
 		for i := 1; i < len(query); i++ {
 			switch query[i] {
-			case 39, 34:
+			case started_with:
 				if escaped {
 					escaped = false
 					continue
 				}
-				return i, TOKEN_QUOTE
+				return i + 1, TOKEN_QUOTE
 			case 92:
 				escaped = true
 			default:
@@ -502,39 +505,45 @@ func scanToken(query []byte) (length int, thistype int) {
 		}
 		return len(query), TOKEN_QUOTE
 
-	case query[0] >= 48 && query[0] <= 57: // 0-9
+	case b >= 48 && b <= 57: // 0-9
 		for i := 1; i < len(query); i++ {
 			switch {
 			case query[i] >= 48 && query[i] <= 57: // 0-9
+				// do nothing
 			default:
 				return i, TOKEN_NUMBER
 			}
 		}
 		return len(query), TOKEN_NUMBER
 
-	case query[0] == 32 || (query[0] >= 9 && query[0] <= 13): // whitespace
+	case b == 32 || (b >= 9 && b <= 13): // whitespace
 		for i := 1; i < len(query); i++ {
 			switch {
-			case query[i] == 32 || (query[i] >= 9 && query[i] <= 13): // whitespace
+			case query[i] == 32 || (query[i] >= 9 && query[i] <= 13):
+				// Eat all whitespace
 			default:
 				return i, TOKEN_WHITESPACE
 			}
 		}
 		return len(query), TOKEN_WHITESPACE
 
-	default:
+	case (b >= 65 && b <= 90) || (b >= 97 && b <= 122): // a-zA-Z
 		for i := 1; i < len(query); i++ {
 			switch {
 			case query[i] >= 48 && query[i] <= 57:
 				// Numbers, allow.
-			case query[i] == 39 || query[i] == 34 || (query[i] >= 48 && query[i] <= 57) ||
-				query[i] == 32 || (query[i] >= 9 && query[i] <= 13):
-				// Certain punctuation ends our run!
-				return i, TOKEN_DEFAULT
+			case (query[i] >= 65 && query[i] <= 90) || (query[i] >= 97 && query[i] <= 122):
+				// Letters, allow.
+			case query[i] == 36 || query[i] == 95:
+				// $ and _
 			default:
+				return i, TOKEN_WORD
 			}
 		}
-		return len(query), TOKEN_DEFAULT
+		return len(query), TOKEN_WORD
+
+	default: // everything else
+		return 1, TOKEN_OTHER
 	}
 
 	// shouldn't get here
@@ -549,7 +558,7 @@ func cleanupQuery(query []byte) string {
 		length, toktype := scanToken(query[i:])
 
 		switch toktype {
-		case TOKEN_DEFAULT:
+		case TOKEN_WORD, TOKEN_OTHER:
 			qspace = append(qspace, string(query[i:i+length]))
 
 		case TOKEN_NUMBER, TOKEN_QUOTE:
