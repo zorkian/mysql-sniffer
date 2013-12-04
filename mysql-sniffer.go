@@ -40,6 +40,13 @@ const (
 	// Internal tuning
 	TIME_BUCKETS = 10000
 
+	// ANSI colors
+	COLOR_RED     = "\x1b[31m"
+	COLOR_YELLOW  = "\x1b[33m"
+	COLOR_CYAN    = "\x1b[36m"
+	COLOR_WHITE   = "\x1b[37m"
+	COLOR_DEFAULT = "\x1b[39m"
+
 	// MySQL packet types
 	COM_QUERY = 3
 
@@ -191,8 +198,8 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 	// print status bar
 	log.Printf("\n")
 	log.SetFlags(log.Ldate | log.Ltime)
-	log.Printf("%d total queries, %0.2f per second", querycount,
-		float64(querycount)/elapsed)
+	log.Printf("%s%d total queries, %0.2f per second%s", COLOR_RED, querycount,
+		float64(querycount)/elapsed, COLOR_DEFAULT)
 	log.SetFlags(0)
 
 	log.Printf("%d packets (%0.2f%% on synchronized streams) / %d desyncs / %d streams",
@@ -201,8 +208,7 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 
 	// global timing values
 	gmin, gavg, gmax := calculateTimes(&times)
-	log.Printf("%0.2fms min / %0.2fms avg / %0.2fms max query time",
-		gmin, gavg, gmax)
+	log.Printf("%0.2fms min / %0.2fms avg / %0.2fms max query time", gmin, gavg, gmax)
 	log.Printf(" ")
 
 	// we cheat so badly here...
@@ -227,8 +233,10 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 			sorted = float64(bavg)
 		}
 
-		tmp = append(tmp, sortable{sorted, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db %6db %s",
-			c.count, qps, qmin, qavg, qmax, c.bytes, bavg, q)})
+		tmp = append(tmp, sortable{sorted, fmt.Sprintf(
+			"%s%6d  %s%7.2f/s  %s%6.2f %6.2f %6.2f %8db %6db %s%s%s",
+			COLOR_YELLOW, c.count, COLOR_CYAN, qps, COLOR_YELLOW, qmin, qavg, qmax, c.bytes, bavg,
+			COLOR_WHITE, q, COLOR_DEFAULT)})
 	}
 	sort.Sort(tmp)
 
