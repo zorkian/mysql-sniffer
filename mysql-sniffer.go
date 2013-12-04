@@ -263,7 +263,12 @@ func processPacket(rs *source, request bool, data []byte) {
 	// store it with this channel so we can keep track of that.
 	var reqtime uint64
 	if !request {
+		// Keep adding the bytes we're getting, since this is probably still part of
+		// an earlier response
 		if rs.reqSent == nil {
+			if rs.qdata != nil {
+				rs.qdata.bytes += plen
+			}
 			return
 		}
 		reqtime = uint64(time.Since(*rs.reqSent).Nanoseconds())
