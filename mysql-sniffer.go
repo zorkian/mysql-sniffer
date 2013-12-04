@@ -42,6 +42,7 @@ const (
 
 	// ANSI colors
 	COLOR_RED     = "\x1b[31m"
+	COLOR_GREEN   = "\x1b[32m"
 	COLOR_YELLOW  = "\x1b[33m"
 	COLOR_CYAN    = "\x1b[36m"
 	COLOR_WHITE   = "\x1b[37m"
@@ -208,8 +209,11 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 
 	// global timing values
 	gmin, gavg, gmax := calculateTimes(&times)
-	log.Printf("%0.2fms min / %0.2fms avg / %0.2fms max query time", gmin, gavg, gmax)
+	log.Printf("%0.2fms min / %0.2fms avg / %0.2fms max query times", gmin, gavg, gmax)
+	log.Printf("%d unique results in this filter", len(qbuf))
 	log.Printf(" ")
+	log.Printf("%s count     %sqps     %s  min    avg   max      %sbytes      per qry%s",
+		COLOR_YELLOW, COLOR_CYAN, COLOR_YELLOW, COLOR_GREEN, COLOR_DEFAULT)
 
 	// we cheat so badly here...
 	var tmp sortableSlice = make(sortableSlice, 0, len(qbuf))
@@ -234,9 +238,9 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 		}
 
 		tmp = append(tmp, sortable{sorted, fmt.Sprintf(
-			"%s%6d  %s%7.2f/s  %s%6.2f %6.2f %6.2f %8db %6db %s%s%s",
-			COLOR_YELLOW, c.count, COLOR_CYAN, qps, COLOR_YELLOW, qmin, qavg, qmax, c.bytes, bavg,
-			COLOR_WHITE, q, COLOR_DEFAULT)})
+			"%s%6d  %s%7.2f/s  %s%6.2f %6.2f %6.2f  %s%9db %6db %s%s%s",
+			COLOR_YELLOW, c.count, COLOR_CYAN, qps, COLOR_YELLOW, qmin, qavg, qmax,
+			COLOR_GREEN, c.bytes, bavg, COLOR_WHITE, q, COLOR_DEFAULT)})
 	}
 	sort.Sort(tmp)
 
