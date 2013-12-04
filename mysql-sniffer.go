@@ -36,6 +36,9 @@ const (
 	TOKEN_NUMBER     = 2
 	TOKEN_WHITESPACE = 3
 
+	// Internal tuning
+	TIME_BUCKETS = 10000
+
 	// MySQL packet types
 	COM_QUERY = 3
 
@@ -52,6 +55,12 @@ type packet struct {
 	data    []byte
 }
 
+type sortable struct {
+	value float64
+	line  string
+}
+type sortableSlice []sortable
+
 type source struct {
 	src       string
 	srcip     string
@@ -59,7 +68,7 @@ type source struct {
 	reqbuffer []byte
 	resbuffer []byte
 	reqSent   *time.Time
-	reqTimes  [100]uint64
+	reqTimes  [TIME_BUCKETS]uint64
 	qbytes    uint64
 	qdata     *queryData
 	qtext     string
@@ -68,7 +77,7 @@ type source struct {
 type queryData struct {
 	count uint64
 	bytes uint64
-	times [100]uint64
+	times [TIME_BUCKETS]uint64
 }
 
 var start int64 = UnixNow()
@@ -79,7 +88,7 @@ var verbose bool = false
 var dirty bool = false
 var format []interface{}
 var port uint16
-var times [100]uint64
+var times [TIME_BUCKETS]uint64
 
 var stats struct {
 	packets struct {
@@ -102,6 +111,8 @@ func main() {
 	var displaycount *int = flag.Int("d", 15, "Display this many queries in status updates")
 	var doverbose *bool = flag.Bool("v", false, "Print every query received (spammy)")
 	var formatstr *string = flag.String("f", "#q", "Format for output aggregation")
+	var sortby *string = flag.String("s", "count", "Sort by: count, max, avg")
+	var cutoff *int = flag.Int("c", 0, "Only show queries over count/second")
 	flag.Parse()
 
 	verbose = *doverbose
@@ -139,15 +150,15 @@ func main() {
 			// simple output printer... this should be super fast since we expect that a
 			// system like this will have relatively few unique queries once they're
 			// canonicalized.
-			if !verbose && querycount%100 == 0 && last < UnixNow()-int64(*period) {
+			if !verbose && querycount%1000 == 0 && last < UnixNow()-int64(*period) {
 				last = UnixNow()
-				handleStatusUpdate(*displaycount)
+				handleStatusUpdate(*displaycount, *sortby, *cutoff)
 			}
 		}
 	}
 }
 
-func calculateTimes(timings *[100]uint64) (fmin, favg, fmax float64) {
+func calculateTimes(timings *[TIME_BUCKETS]uint64) (fmin, favg, fmax float64) {
 	var counts, total, min, max, avg uint64 = 0, 0, 0, 0, 0
 	has_min := false
 	for _, val := range *timings {
@@ -173,7 +184,7 @@ func calculateTimes(timings *[100]uint64) (fmin, favg, fmax float64) {
 		float64(max) / 1000000
 }
 
-func handleStatusUpdate(displaycount int) {
+func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 	elapsed := float64(UnixNow() - start)
 
 	// print status bar
@@ -194,11 +205,24 @@ func handleStatusUpdate(displaycount int) {
 	log.Printf(" ")
 
 	// we cheat so badly here...
-	var tmp sort.StringSlice = make([]string, 0, len(qbuf))
+	var tmp sortableSlice = make(sortableSlice, 0, len(qbuf))
 	for q, c := range qbuf {
+		qps := float64(c.count) / elapsed
+		if qps < float64(cutoff) {
+			continue
+		}
+
 		qmin, qavg, qmax := calculateTimes(&c.times)
-		tmp = append(tmp, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db  %s",
-			c.count, float64(c.count)/elapsed, qmin, qavg, qmax, c.bytes, q))
+
+		sorted := float64(c.count)
+		if sortby == "avg" {
+			sorted = qavg
+		} else if sortby == "max" {
+			sorted = qmax
+		}
+
+		tmp = append(tmp, sortable{sorted, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db  %s",
+			c.count, qps, qmin, qavg, qmax, c.bytes, q)})
 	}
 	sort.Sort(tmp)
 
@@ -208,7 +232,7 @@ func handleStatusUpdate(displaycount int) {
 		displaycount = len(tmp)
 	}
 	for i := 1; i <= displaycount; i++ {
-		log.Printf(tmp[len(tmp)-i])
+		log.Printf(tmp[len(tmp)-i].line)
 	}
 }
 
@@ -274,7 +298,7 @@ func processPacket(rs *source, request bool, data []byte) {
 		reqtime = uint64(time.Since(*rs.reqSent).Nanoseconds())
 
 		// We keep track of per-source, global, and per-query timings.
-		randn := rand.Intn(100)
+		randn := rand.Intn(TIME_BUCKETS)
 		rs.reqTimes[randn] = reqtime
 		times[randn] = reqtime
 		if rs.qdata != nil {
@@ -601,4 +625,16 @@ func parseFormat(formatstr string) {
 	if curstr != "" {
 		format = append(format, curstr)
 	}
+}
+
+func (self sortableSlice) Len() int {
+	return len(self)
+}
+
+func (self sortableSlice) Less(i, j int) bool {
+	return self[i].value < self[j].value
+}
+
+func (self sortableSlice) Swap(i, j int) {
+	self[i], self[j] = self[j], self[i]
 }
