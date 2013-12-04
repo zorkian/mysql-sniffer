@@ -111,7 +111,7 @@ func main() {
 	var displaycount *int = flag.Int("d", 15, "Display this many queries in status updates")
 	var doverbose *bool = flag.Bool("v", false, "Print every query received (spammy)")
 	var formatstr *string = flag.String("f", "#q", "Format for output aggregation")
-	var sortby *string = flag.String("s", "count", "Sort by: count, max, avg")
+	var sortby *string = flag.String("s", "count", "Sort by: count, max, avg, maxbytes, avgbytes")
 	var cutoff *int = flag.Int("c", 0, "Only show queries over count/second")
 	flag.Parse()
 
@@ -213,16 +213,21 @@ func handleStatusUpdate(displaycount int, sortby string, cutoff int) {
 		}
 
 		qmin, qavg, qmax := calculateTimes(&c.times)
+		bavg := uint64(float64(c.bytes) / float64(c.count))
 
 		sorted := float64(c.count)
 		if sortby == "avg" {
 			sorted = qavg
 		} else if sortby == "max" {
 			sorted = qmax
+		} else if sortby == "maxbytes" {
+			sorted = float64(c.bytes)
+		} else if sortby == "avgbytes" {
+			sorted = float64(bavg)
 		}
 
-		tmp = append(tmp, sortable{sorted, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db  %s",
-			c.count, qps, qmin, qavg, qmax, c.bytes, q)})
+		tmp = append(tmp, sortable{sorted, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db %6db %s",
+			c.count, qps, qmin, qavg, qmax, c.bytes, bavg, q)})
 	}
 	sort.Sort(tmp)
 
@@ -262,8 +267,10 @@ func processPacket(rs *source, request bool, data []byte) {
 		rs.reqbuffer = data
 		ptype, pdata = carvePacket(&rs.reqbuffer)
 	} else {
-		rs.resbuffer = data
-		ptype, pdata = carvePacket(&rs.resbuffer)
+		// FIXME: For now we're not doing anything with response data, just using the first packet
+		// after a query to determine latency.
+		rs.resbuffer = nil
+		ptype, pdata = 0, data
 	}
 
 	// The synchronization logic: if we're not presently, then we want to
