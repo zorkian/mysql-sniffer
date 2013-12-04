@@ -197,7 +197,7 @@ func handleStatusUpdate(displaycount int) {
 	var tmp sort.StringSlice = make([]string, 0, len(qbuf))
 	for q, c := range qbuf {
 		qmin, qavg, qmax := calculateTimes(&c.times)
-		tmp = append(tmp, fmt.Sprintf("%6d  %6.2f/s  %6.2f %6.2f %6.2f %8db  %s",
+		tmp = append(tmp, fmt.Sprintf("%6d  %7.2f/s  %6.2f %6.2f %6.2f %8db  %s",
 			c.count, float64(c.count)/elapsed, qmin, qavg, qmax, c.bytes, q))
 	}
 	sort.Sort(tmp)
@@ -302,12 +302,6 @@ func processPacket(rs *source, request bool, data []byte) {
 	querycount++
 	var text string
 
-	/*if dirty {
-		text += string(pdata)
-	} else {
-		text += cleanupQuery(pdata)
-	}*/
-
 	for _, item := range format {
 		switch item.(type) {
 		case int:
@@ -321,7 +315,19 @@ func processPacket(rs *source, request bool, data []byte) {
 					text += cleanupQuery(pdata)
 				}
 			case F_ROUTE:
-				//
+				// Routes are in the query like:
+				//     SELECT /* hostname:route */ FROM ...
+				// We remove the hostname so routes can be condensed.
+				parts := strings.SplitN(string(pdata), " ", 5)
+				if len(parts) >= 4 && parts[1] == "/*" && parts[3] == "*/" {
+					if strings.Contains(parts[2], ":") {
+						text += strings.SplitN(parts[2], ":", 2)[1]
+					} else {
+						text += parts[2]
+					}
+				} else {
+					text += "(unknown) " + cleanupQuery(pdata)
+				}
 			case F_SOURCE:
 				text += rs.src
 			case F_SOURCEIP:
@@ -523,8 +529,17 @@ func cleanupQuery(query []byte) string {
 		i += length
 	}
 
-	// store in our global structure
-	return strings.Join(qspace, "")
+	// Remove hostname from the route information if it's present
+	tmp := strings.Join(qspace, "")
+
+	parts := strings.SplitN(tmp, " ", 5)
+	if len(parts) >= 5 && parts[1] == "/*" && parts[3] == "*/" {
+		if strings.Contains(parts[2], ":") {
+			tmp = parts[0] + " /* " + strings.SplitN(parts[2], ":", 2)[1] + " */ " + parts[4]
+		}
+	}
+
+	return tmp
 }
 
 // parseFormat takes a string and parses it out into the given format slice
