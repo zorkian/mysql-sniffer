@@ -23,6 +23,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/akrennmair/gopcap"
+	_ "github.com/davecgh/go-spew/spew"
 	"log"
 	"math/rand"
 	"sort"
@@ -94,6 +95,7 @@ var qbuf map[string]*queryData = make(map[string]*queryData)
 var querycount int
 var chmap map[string]*source = make(map[string]*source)
 var verbose bool = false
+var noclean bool = false
 var dirty bool = false
 var format []interface{}
 var port uint16
@@ -119,12 +121,14 @@ func main() {
 	var period *int = flag.Int("t", 10, "Seconds between outputting status")
 	var displaycount *int = flag.Int("d", 15, "Display this many queries in status updates")
 	var doverbose *bool = flag.Bool("v", false, "Print every query received (spammy)")
-	var formatstr *string = flag.String("f", "#q", "Format for output aggregation")
+	var nocleanquery *bool = flag.Bool("n", false, "no clean queries")
+	var formatstr *string = flag.String("f", "#s:#q", "Format for output aggregation")
 	var sortby *string = flag.String("s", "count", "Sort by: count, max, avg, maxbytes, avgbytes")
 	var cutoff *int = flag.Int("c", 0, "Only show queries over count/second")
 	flag.Parse()
 
 	verbose = *doverbose
+	noclean = *nocleanquery
 	port = uint16(*lport)
 	dirty = *ldirty
 	parseFormat(*formatstr)
@@ -331,9 +335,9 @@ func processPacket(rs *source, request bool, data []byte) {
 		rs.reqSent = nil
 
 		// If we're in verbose mode, just dump statistics from this one.
-		if verbose {
-			log.Printf("%s %d %d %0.2f\n", rs.qtext, rs.qbytes, plen,
-				float64(reqtime)/1000000)
+		if verbose && len(rs.qtext) > 0 {
+			log.Printf("    %s%s %s## %sbytes: %d time: %0.2f%s\n", COLOR_GREEN, rs.qtext, COLOR_RED,
+				COLOR_YELLOW, rs.qbytes, float64(reqtime)/1000000, COLOR_DEFAULT)
 		}
 
 		return
@@ -495,6 +499,10 @@ func scanToken(query []byte) (length int, thistype int) {
 		log.Fatalf("scanToken called with empty query")
 	}
 
+	//no clean queries
+	if verbose && noclean {
+		return len(query), TOKEN_OTHER
+	}
 	// peek at the first byte, then loop
 	b := query[0]
 	switch {
