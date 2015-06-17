@@ -163,7 +163,7 @@ func main() {
 			// simple output printer... this should be super fast since we expect that a
 			// system like this will have relatively few unique queries once they're
 			// canonicalized.
-			if !verbose && querycount%10 == 0 && last < UnixNow()-int64(*period) {
+			if !verbose && querycount%1000 == 0 && last < UnixNow()-int64(*period) {
 				last = UnixNow()
 				handleStatusUpdate(*displaycount, *sortby, *cutoff)
 			}
