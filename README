@@ -2,7 +2,7 @@ MySQL Query Sniffer
 
 This program uses libpcap to capture and analyze packets destined for a MySQL
 server.  With a variety of command line options, you can tune the output to
-show you a variety of outputs, such as:
+show a variety of outputs, such as:
 
     * top N queries since you started running the program
     * top N queries every X seconds (sliding window)
