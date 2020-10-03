@@ -16,3 +16,11 @@ library (https://github.com/akrennmair/gopcap) compiled and installed where go
 can find it.
 
 Written by Mark Smith <mark@qq.is>.
+
+Improve MySQL Performance: Find and Fix Problem Queries
+The MySQL Query Analyzer provides a consolidated view of query activities and execution details enabling developers and DBAs to quickly find performance tuning opportunities. MySQL Query Analyzer enables developers to:
+
+Quickly identify expensive queries that impact the performance of their applications
+Visualize query activity to gain further insight into performance beyond query statistics
+Filter for specific query problems like full table scans and bad indexes using advanced global search options
+Fix the root causes of poor performance directly in the SQL code
