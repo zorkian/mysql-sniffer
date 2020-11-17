@@ -2,7 +2,7 @@ MySQL Query Sniffer
 
 This program uses libpcap to capture and analyze packets destined for a MySQL
 server.  With a variety of command line options, you can tune the output to
-show you a variety of outputs, such as:
+show a variety of outputs, such as:
 
     * top N queries since you started running the program
     * top N queries every X seconds (sliding window)
@@ -16,3 +16,11 @@ library (https://github.com/akrennmair/gopcap) compiled and installed where go
 can find it.
 
 Written by Mark Smith <mark@qq.is>.
+
+Improve MySQL Performance: Find and Fix Problem Queries
+The MySQL Query Analyzer provides a consolidated view of query activities and execution details enabling developers and DBAs to quickly find performance tuning opportunities. MySQL Query Analyzer enables developers to:
+
+Quickly identify expensive queries that impact the performance of their applications
+Visualize query activity to gain further insight into performance beyond query statistics
+Filter for specific query problems like full table scans and bad indexes using advanced global search options
+Fix the root causes of poor performance directly in the SQL code
